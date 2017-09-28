@@ -2,6 +2,13 @@ import time
 import sys
 
 
+# Declare a few global variables
+wffs = 0
+n_sat = 0
+n_unsat = 0
+given = 0
+correct = 0
+
 # Declare functions
 def read_wff (f):
     wff = {}
@@ -9,7 +16,7 @@ def read_wff (f):
     if not line:
         return
     line = line.split(" ")
-    wff['problem'] = int(line[1])
+    wff['problem'] = line[1]
     wff['maxLiterals'] = int(line[2])
     wff['testSat'] = line[3]
     line = f.readline().strip()
@@ -44,11 +51,41 @@ def read_wff (f):
 def generate_assignment (a):
     return a + 1
 
-def verify (assign, lit):
+def check_lit (assign, lit):
     return (lit & 1) ^ (get_nth_bit(assign, lit >> 1))
 
-def create_output ():
-    return
+def verify (assign, wff):
+    clauses_true = True
+    for clause in wff['clauses']:
+        this_clause = False
+        for lit in clause:
+            if check_lit(wff['assignment'], lit):
+                this_clause = True
+                break
+        clauses_true = this_clause
+        if not this_clause:
+            return False
+    if clauses_true:
+        return True
+
+def create_output (wff):
+    global given, correct
+    output = wff['problem'] + "," + str(wff['nVar']) + "," + str(wff['nClause']) + ","
+    output += str(wff['maxLiterals']) + "," + str(len(wff['lits'])) + "," + wff['answer']
+    if wff['testSat']:
+        given += 1
+        if wff['testSat'] is wff['answer']:
+            output += ",1,"
+            correct += 1
+        else:
+            output += ",-1,"
+    else:
+        output += ",0,"
+    output += str(wff['time'])
+    if wff['answer'] is "S":
+        for i in range(1, wff['assignment'].bit_length()):
+            output += "," + str(get_nth_bit(wff['assignment'], i))
+    return output
 
 def get_nth_bit (num, n):
     return (num >> (n - 1)) & 1
@@ -56,28 +93,27 @@ def get_nth_bit (num, n):
 file_name = sys.argv[1]
 f = open(file_name, 'r')
 current = read_wff(f)
-i = 100
-while i is not 0:
+while current:
+    wffs += 1
     current['assignment'] = 0
+    start = time.time()
     while current['assignment'].bit_length() <= len(current['vars']):
-        clauses_true = True
-        for clause in current['clauses']:
-            this_clause = False
-            for lit in clause:
-                if verify(current['assignment'], lit):
-                    this_clause = True
-                    break
-            clauses_true = this_clause
-            if not this_clause:
-                break
-        if clauses_true:
+        sat = verify(current['assignment'], current)
+        if sat:
             break
         current['assignment'] = generate_assignment(current['assignment'])
-    if clauses_true:
-        print ("Ours: {}   Expected: {}").format("S", current['testSat'])
+    if sat:
+        current['answer'] = "S"
+        n_sat += 1
     else:
-        print ("Ours: {}   Expected: {}").format("U", current['testSat'])
-
+        current['answer'] = "U"
+        n_unsat += 1
+    end = time.time()
+    current['time'] = round(abs(end - start) * 1e6, 2)
+    print create_output(current)
     current = read_wff(f)
-    i -= 1
+
+last_line = (sys.argv[1].split("."))[0] + ",avatar," + str(wffs) + ","
+last_line += str(n_sat) + "," + str(n_unsat) + "," + str(given) + "," + str(correct)
+print last_line
 f.close()
