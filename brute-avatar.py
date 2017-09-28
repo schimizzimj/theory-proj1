@@ -5,7 +5,7 @@ import sys
 # Declare functions
 def read_wff (f):
     line = f.readline()
-    if (!line):
+    if not line:
         return
     line = line.split(" ")
     wff['problem'] = line[1]
