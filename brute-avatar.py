@@ -16,12 +16,19 @@ def read_wff (f):
     wff['nVar'] = line[2]
     wff['nClause'] = line[3]
     wff['clauses'] = []
+    wff['vars'] = []
+    wff['lits'] = []
     for i in range(0, wff['nClause']):
         line = f.readline()
         line = line.split(" ")
         currentClause = []
         for lit in line:
-            currentLit = abs(  )
+            (currentLit = abs(lit) + 1) if (lit < 0) else (currentLit = abs(lit))
+            currentClause.push(currentLit)
+            if currentLit not in wff['lits']:
+                wff['lits'].push(currentLit)
+            if abs(lit) not in wff['vars']:
+                wff['vars'].push(abs(lit))
     return wff
 
 def generate_assignment ():
