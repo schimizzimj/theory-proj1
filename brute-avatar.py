@@ -25,6 +25,8 @@ def read_wff (f):
         currentClause = []
         for lit in line:
             lit = int(lit)
+            if lit is 0:
+                continue
             if lit < 0:
                 currentLit = 2 * abs(lit) + 1
             else:
@@ -50,6 +52,6 @@ file_name = sys.argv[1]
 f = open(file_name, 'r')
 current = read_wff(f)
 while current:
-    print current['problem']
+    print current['testSat']
     current = read_wff(f)
 f.close()
