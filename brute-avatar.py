@@ -4,6 +4,7 @@ import sys
 
 # Declare functions
 def read_wff (f):
+    wff = {}
     line = f.readline()
     if not line:
         return
@@ -18,29 +19,37 @@ def read_wff (f):
     wff['clauses'] = []
     wff['vars'] = []
     wff['lits'] = []
-    for i in range(0, wff['nClause']):
+    for i in range(0, int(wff['nClause'])):
         line = f.readline()
-        line = line.split(" ")
+        line = line.split(",")
         currentClause = []
         for lit in line:
-            (currentLit = abs(lit) + 1) if (lit < 0) else (currentLit = abs(lit))
-            currentClause.push(currentLit)
+            lit = int(lit)
+            if lit < 0:
+                currentLit = 2 * abs(lit) + 1
+            else:
+                currentLit = 2 * abs(lit)
+            currentClause.append(currentLit)
             if currentLit not in wff['lits']:
-                wff['lits'].push(currentLit)
+                wff['lits'].append(currentLit)
             if abs(lit) not in wff['vars']:
-                wff['vars'].push(abs(lit))
+                wff['vars'].append(abs(lit))
+        wff['clauses'].append(currentClause)
     return wff
 
 def generate_assignment ():
-
+    return
 
 def verify ():
-
+    return
 
 def create_output ():
+    return
 
 file_name = sys.argv[1]
 f = open(file_name, 'r')
-while (wff = read_wff(f)):
-    print wff['problem']
+current = read_wff(f)
+while current:
+    print current['problem']
+    current = read_wff(f)
 f.close()
