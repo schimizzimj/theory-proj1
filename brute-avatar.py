@@ -14,11 +14,13 @@ def read_wff (file):
     line = line.split(" ")
     wff['nVar'] = line[2]
     wff['nClause'] = line[3]
-    for range(0, wff['nClause']):
+    wff['clauses'] = []
+    for i in range(0, wff['nClause']):
         line = f.readline()
         line = line.split(" ")
+        
         for lit in line:
-            
+
     return wff
 
 def generate_assignment ():
