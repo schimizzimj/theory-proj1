@@ -1,5 +1,5 @@
 import time
-
+import sys
 
 
 # Declare functions
@@ -39,5 +39,8 @@ def verify ():
 
 def create_output ():
 
-
+file_name = sys.argv[1]
 f = open(file_name, 'r')
+while (wff = read_wff(f)):
+    print wff['problem']
+f.close()
