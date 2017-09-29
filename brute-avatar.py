@@ -110,7 +110,7 @@ while current:
         n_unsat += 1
     end = time.time()
     current['time'] = round(abs(end - start) * 1e6, 2)
-    print create_output(current)
+    return create_output(current)
     current = read_wff(f)
 
 last_line = (sys.argv[1].split("."))[0] + ",avatar," + str(wffs) + ","
