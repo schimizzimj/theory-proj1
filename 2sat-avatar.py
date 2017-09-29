@@ -5,6 +5,13 @@ import sys
 # difficult to import brute-avatar.py for its functions, so need functions are just copied
 # here for convenience
 
+# Declare a few global variables
+wffs = 0
+n_sat = 0
+n_unsat = 0     # needed counter variables
+given = 0
+correct = 0
+
 def read_wff (f):
     # this function parses one wff and stores its information in a python dict
     wff = {}
@@ -12,7 +19,7 @@ def read_wff (f):
     if not line:
         return
     line = line.split(" ")
-    wff['problem'] = int(line[1])
+    wff['problem'] = line[1]
     wff['maxLiterals'] = int(line[2])
     wff['testSat'] = line[3]
     line = f.readline().strip()
@@ -44,75 +51,89 @@ def read_wff (f):
     wff['lits'].sort();
     return wff
 
+def find_first(wff, set_vars):
+    for clause in wff['clauses']:
+        for item in clause:
+            if set_vars[(item >> 1) - 1] is 0:
+                return item
+
+def create_output (wff): # used to format output string for each wff
+    global given, correct # allow use of counters in function
+    output = wff['problem'] + "," + str(wff['nVar']) + "," + str(wff['nClause']) + ","
+    output += str(wff['maxLiterals']) + "," + str(len(wff['lits'])) + ","
+    if wff['answer'] is 'U':
+        output += 'U'
+    else:
+        output += 'S'
+    if wff['testSat'] is not '?': # if answer is given
+        given += 1
+        if wff['testSat'] is wff['answer']:
+            output += ",1,"
+            correct += 1
+        else:
+            output += ",-1,"
+    else:
+        output += ",0,"
+    output += str(wff['time']) # runtime
+    if wff['answer'] is not "U": # append assignments
+        for i in wff['answer']:
+            output += "," + str(i & 1)
+    return output
+
 def solve(wff):
-    depth = 0
-    first = 0
-    lastSet = 0
+    depth = 0 # used to determine whether or not you are at the "root"
+    first = 0 # keeps track of first literal assignment used from root
+    last_set_var = 0 # last set variable
     setVars = [0] * wff['nVar'] # indicates whether a variable has been set 0 is unset, 1 is true, 2 is False
-    tried = [0] * (2 * wff['nVar'])
-    clauses_truths = [0] * wff['nClause']
+    tried = 0 # keeps track of whether or not a variable has been tried
+    clauses_truths = [0] * wff['nClause'] # keeps track of whether a clause has been declared true
     while True:
-        if depth is 0:
-            if 0 not in tried:
-                return False
+        if depth is 0: # at the root
             if first is 0:
-                first = wff['clauses'][0][0]
+                first = find_first(wff, setVars) # returns a first variable to try
             else:
-                print "stuff: ", tried[((first ^ 1) >> 1) + ((first ^ 1) & 1) - 1]
-                if tried[((first ^ 1) >> 1) + ((first ^ 1) & 1)]: # if we have tried both for this variable, choose a new one
-                    # first = 0
-                    # i = 0
-                    # print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%here"
-                    # while not first and i < wff['nClause']:
-                    #     for lit in wff['clauses'][i]:
-                    #         if not tried[lit - 2]:
-                    #             first = lit
-                    #     i += 1
-                    return False
+                if tried:
+                    # if you tried both possibilities for a variable and still not gotten an answer,
+                    # it must be unsatifiable
+                    return 'U'
                 else:
                     first ^= 1 # try other value for variable
-                    print first
-            tried[(first >> 1) + (first & 1) - 1] = 1
+            tried = 1
             setVars = [0] * wff['nVar'] # reset setVars to all zeros
-            setVars[(first >> 1) - 1] = (first & 1) + 1
-            clauses_truths = [0] * wff['nClause']
-            lastSet = first
+            setVars[(first >> 1) - 1] = (first & 1) + 1 # update appropriate element in setVars
+            clauses_truths = [0] * wff['nClause'] # reset clauses_truths to zeros
+            last_set_var = first
             depth += 1
-            negations = []
         else:
-            ind = 1
-            initial_set = lastSet
-            if lastSet ^ 1 not in negations:
-                negations.append(lastSet ^ 1)
+            ind = 1 # track if undetermined clauses are independent
+            initial_set = last_set_var # used to track if change was made to the last set variable
             # print "vars: ", setVars
             # print "tried: ", tried
             # print "clauses", wff['clauses']
             # print "truths: ", clauses_truths
-            # print "last: ", lastSet
-            # print "negations: ", negations
-            for i, clause in enumerate(wff['clauses']):
-                if not clauses_truths[i]:
-                    if lastSet in clause:
-                        clauses_truths[i] = 1
+            # print "last: ", last_set_var
+            for i, clause in enumerate(wff['clauses']): # for loop to check switch clauses to true
+                if not clauses_truths[i]: # only check clauses that aren't already true
+                    if last_set_var in clause:
+                        clauses_truths[i] = 1 # set clause to true
                         ind = 0
-                        continue
-            for i, clause in enumerate(wff['clauses']):
+            for i, clause in enumerate(wff['clauses']): # for loop to select next variable to flip
                 if not clauses_truths[i]:
-                    # if lastSet ^ 1 in clause:
-                    if [i for i in negations if i in clause]:
-                        ind = 0
-                        found = 0
+                    if last_set_var ^ 1 in clause: # if the negation of the last set variable is in the clause
+                        ind = 0 # not fully independent
+                        found = 0 # variable used to track if
                         for item in clause:
-                            if item is not lastSet ^ 1:
+                            if item is not last_set_var ^ 1:
                                 if setVars[(item >> 1) - 1] is 0:
-                                    lastSet = item
+                                    # if variable is unset, use as new last set variable
+                                    last_set_var = item
                                     setVars[(item >> 1) - 1] = (item & 1) + 1
                                     break
-                                else:
+                                else: # if trying to assign two values to same variable
                                     depth = 0
                                     break
-
-                            else:
+                            else: # if a clause is simply two of the negations it's a contradiction
+                                  # and you must rechoose the variable
                                 if found > 0:
                                     depth = 0
                                     break
@@ -120,30 +141,39 @@ def solve(wff):
 
 
 
-                if initial_set is not lastSet:
+                if initial_set is not last_set_var: # if variable was changed, break out
                     break
-            if 0 not in clauses_truths:
-                return True
+            if 0 not in clauses_truths: # if all clauses are true, return True
+                return setVars
             elif ind:
-                print "======================================================"
-                new_wff = wff
+                # print "======================================================"
+                new_wff = wff # create new wff dict
                 new_wff['clauses'] = [clause for i, clause in enumerate(wff['clauses']) if not clauses_truths[i]]
-                new_wff['nClause'] = len(new_wff['clauses'])
-                if len(new_wff['clauses']) > 0:
-                    answer = solve(new_wff)
-                    return answer
-                else:
-                    wff['end'] = setVars
-                    return True
+                # create new clause list with a list comprehension
+                new_wff['nClause'] = len(new_wff['clauses']) # get new length of clauses
+                answer = solve(new_wff) # recursively call solve using it as a smaller problem
+                return answer
 
 
 
-file_name = sys.argv[1]
-f = open(file_name, 'r')
+
+file_name = sys.argv[1] # get command line arguments
+f = open(file_name, 'r') # open given file
 current = read_wff(f)
-i = 13
-while i:
-    print("Ours: {}    Expected: {}").format(solve(current), current['testSat'])
+while current: # loop through each wff in input file
+    wffs += 1
+    start = time.time()
+    current['answer'] = solve(current)
+    end = time.time()
+    if current['answer'] is 'U':
+        n_unsat += 1
+    else:
+        n_sat += 1
+    current['time'] = round(abs(end - start) * 1e6, 2) # calculate runtime
+    print create_output(current)
     current = read_wff(f)
-    i -= 1
-    print "--------------------------", current['problem'] - 1, "------------------------------"
+
+last_line = (sys.argv[1].split("."))[0] + ",avatar," + str(wffs) + ","
+last_line += str(n_sat) + "," + str(n_unsat) + "," + str(given) + "," + str(correct)
+print last_line # add final line
+f.close() # close file
