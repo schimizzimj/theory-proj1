@@ -1,37 +1,68 @@
 import sys
 import time
-def read_wff (f): # reads in file of wffs
+given = 0
+correct = 0
+def create_output (wff):
+    global given, correct
+    output = wff['problem'] + "," + str(wff['nVar']) + "," + str(wff['nClause']) + ","
+    output += str(wff['maxLiterals']) + "," + str(len(wff['lits'])) + "," + wff['answer']
+    if wff['testSat']:
+        given += 1
+        if wff['testSat'] is wff['answer']:
+            output += ",1,"
+            correct += 1
+        else:
+            output += ",-1,"
+    else:
+        output += ",0,"
+    output += str(wff['time'])
+    if wff['answer'] is "S":
+        solutions = [-1]*wff['nVar']
+        for i in wff['assignment']:
+            if i%2 == 0:
+                solutions[(i>>1)-1] = 1
+            else:
+                solutions[(i>>1)-1] = 0
+        for j in solutions:
+            output += "," + str(j)
+    return output
+
+def read_wff (f):
     wff = {}
-    line = f.readline().strip() # reads first line
-    if not line: # if line empty return nothing
+    line = f.readline().strip()
+    if not line:
         return
     line = line.split(" ")
-    wff['problem'] = line[1] # 2nd element is problem number
-    wff['maxLiterals'] = line[2]#3rd is maximum number of literals
-    wff['testSat'] = line[3]#4th is the solution
-    line = f.readline().strip()#next line
+    wff['problem'] = line[1]
+    wff['maxLiterals'] = int(line[2])
+    wff['testSat'] = line[3]
+    line = f.readline().strip()
     line = line.split(" ")
-    wff['nVar'] = int(line[2])#total number of variables
-    wff['nClause'] = line[3]#number of clauses
-    wff['clauses'] = []# start lists of clauses, variables, and lits
+    wff['nVar'] = int(line[2])
+    wff['nClause'] = int(line[3])
+    wff['clauses'] = []
     wff['vars'] = []
     wff['lits'] = []
-    for i in range(0, int(wff['nClause'])):#loop through each clause
-        line = f.readline().strip()#each line contains a clause
+    for i in range(0, int(wff['nClause'])):
+        line = f.readline().strip()
         line = line.split(",")
         currentClause = []
         for lit in line:
             lit = int(lit)
-            if lit < 0:#if negative/negated, multiply by 2 and add 1
+            if lit is 0:
+                continue
+            if lit < 0:
                 currentLit = 2 * abs(lit) + 1
-            else:#if not negated, multiply by 2
+            else:
                 currentLit = 2 * abs(lit)
-            currentClause.append(currentLit)#add lit to clause list
-            if currentLit not in wff['lits']:#add lit if needed
+            currentClause.append(currentLit)
+            if currentLit not in wff['lits']:
                 wff['lits'].append(currentLit)
-            if abs(lit) not in wff['vars']:#add var if needed
+            if abs(lit) not in wff['vars']:
                 wff['vars'].append(abs(lit))
-        wff['clauses'].append(currentClause)#add current clause list to overall list
+        wff['clauses'].append(currentClause)
+    wff['vars'].sort();
+    wff['lits'].sort();
     return wff
 def length_compare(x, y):
     return len(x) - len(y)
@@ -114,7 +145,7 @@ def satis(wff):
     #                    print "wrong"
     #                    while 1:
     #                        d = 0
-                        return "ns"
+                        return "U"
                 if flipped[-1] == 0:#flip if you have not done so
                     nextlit = literals[-1]^1
                     flipped[-1] = flipped[-1]+1
@@ -154,14 +185,24 @@ def main(argv):
     while current:#read in the file until it has all been read
         current = read_wff(f)
         allwffs.append(current)
+    allwffs.pop()
     f.close()
+    n_sat = 0
+    n_unsat = 0
     for awff in allwffs:
-        print awff['problem'],",",awff['nVar'],",",awff['nClause'],",",awff['']
+        start = time.time()
         answer = satis(awff)
-        if answer == "ns":
-            print 'U\t'
+        end = time.time()
+        awff['time'] = (end - start) * 1000000
+        if answer == "U":
+            awff['answer'] = "U"
+            n_unsat += 1
         else:
-            print 'S\t'
-        print awff['testSat']
-
+            awff['answer'] = "S"
+            awff['assignment'] = answer
+            n_sat += 1
+        print create_output(awff)
+    last_line = (sys.argv[1].split("."))[0] + ",avatar," + str(len(allwffs)) + ","
+    last_line += str(n_sat) + "," + str(n_unsat) + "," + str(given) + "," + str(correct)
+    print last_line
 main(sys.argv)
