@@ -172,7 +172,6 @@ def satis(wff):
                 break
             j = j + 1
 def main(argv):
-    debug = argv[2] #set debug flag
     file_name = sys.argv[1] #read in file name
     allwffs = []
     f = open(file_name, 'r')#open file

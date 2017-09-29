@@ -72,7 +72,7 @@ def create_output (wff):
     global given, correct
     output = wff['problem'] + "," + str(wff['nVar']) + "," + str(wff['nClause']) + ","
     output += str(wff['maxLiterals']) + "," + str(len(wff['lits'])) + "," + wff['answer']
-    if wff['testSat']:
+    if wff['testSat'] is not '?':
         given += 1
         if wff['testSat'] is wff['answer']:
             output += ",1,"

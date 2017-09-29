@@ -58,32 +58,38 @@ def solve(wff):
             if first is 0:
                 first = wff['clauses'][0][0]
             else:
-                print "stuff: ", tried[((first ^ 1) >> 1) + ((first ^ 1) & 1)]
+                print "stuff: ", tried[((first ^ 1) >> 1) + ((first ^ 1) & 1) - 1]
                 if tried[((first ^ 1) >> 1) + ((first ^ 1) & 1)]: # if we have tried both for this variable, choose a new one
-                    first = 0
-                    i = 0
-                    while not first and i < wff['nClause']:
-                        for lit in wff['clauses'][i]:
-                            if not tried[lit - 2]:
-                                first = lit
-                        i += 1
-                    # return False
+                    # first = 0
+                    # i = 0
+                    # print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%here"
+                    # while not first and i < wff['nClause']:
+                    #     for lit in wff['clauses'][i]:
+                    #         if not tried[lit - 2]:
+                    #             first = lit
+                    #     i += 1
+                    return False
                 else:
                     first ^= 1 # try other value for variable
-            tried[(first >> 1) + (first & 1)] = 1
+                    print first
+            tried[(first >> 1) + (first & 1) - 1] = 1
             setVars = [0] * wff['nVar'] # reset setVars to all zeros
             setVars[(first >> 1) - 1] = (first & 1) + 1
             clauses_truths = [0] * wff['nClause']
             lastSet = first
             depth += 1
+            negations = []
         else:
             ind = 1
             initial_set = lastSet
+            if lastSet ^ 1 not in negations:
+                negations.append(lastSet ^ 1)
             # print "vars: ", setVars
             # print "tried: ", tried
             # print "clauses", wff['clauses']
             # print "truths: ", clauses_truths
             # print "last: ", lastSet
+            # print "negations: ", negations
             for i, clause in enumerate(wff['clauses']):
                 if not clauses_truths[i]:
                     if lastSet in clause:
@@ -92,7 +98,8 @@ def solve(wff):
                         continue
             for i, clause in enumerate(wff['clauses']):
                 if not clauses_truths[i]:
-                    if lastSet ^ 1 in clause:
+                    # if lastSet ^ 1 in clause:
+                    if [i for i in negations if i in clause]:
                         ind = 0
                         found = 0
                         for item in clause:
@@ -101,13 +108,16 @@ def solve(wff):
                                     lastSet = item
                                     setVars[(item >> 1) - 1] = (item & 1) + 1
                                     break
+                                else:
+                                    depth = 0
+                                    break
 
                             else:
                                 if found > 0:
-                                    return False
                                     depth = 0
                                     break
                                 found += 1
+
 
 
                 if initial_set is not lastSet:
@@ -115,6 +125,7 @@ def solve(wff):
             if 0 not in clauses_truths:
                 return True
             elif ind:
+                print "======================================================"
                 new_wff = wff
                 new_wff['clauses'] = [clause for i, clause in enumerate(wff['clauses']) if not clauses_truths[i]]
                 new_wff['nClause'] = len(new_wff['clauses'])
@@ -130,8 +141,9 @@ def solve(wff):
 file_name = sys.argv[1]
 f = open(file_name, 'r')
 current = read_wff(f)
-i = 20
+i = 13
 while i:
     print("Ours: {}    Expected: {}").format(solve(current), current['testSat'])
     current = read_wff(f)
     i -= 1
+    print "--------------------------", current['problem'] - 1, "------------------------------"
